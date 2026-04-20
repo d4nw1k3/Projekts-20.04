@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="lv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NutriTrack LV — Kaloriju izsekotājs</title>
+<style>
+  :root {
+    --teal-50: #E1F5EE; --teal-100: #9FE1CB; --teal-400: #1D9E75; --teal-600: #0F6E56; --teal-800: #085041;
+    --gray-50: #F1EFE8; --gray-100: #D3D1C7; --gray-400: #888780; --gray-600: #5F5E5A;
+    --green-50: #EAF3DE; --green-400: #639922; --green-800: #27500A;
+    --red-50: #FCEBEB; --red-400: #E24B4A; --red-800: #791F1F;
+    --amber-50: #FAEEDA; --amber-400: #BA7517; --amber-800: #633806;
+    --blue-50: #E6F1FB; --blue-400: #378ADD; --blue-800: #0C447C;
+    --bg: #ffffff; --bg2: #f8f8f6; --bg3: #f1efe8;
+    --text: #1a1a18; --text2: #5f5e5a; --text3: #888780;
+    --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.22);
+    --radius: 8px; --radius-lg: 12px;
+    --font: system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a; --bg2: #252523; --bg3: #2e2e2b;
+      --text: #f0ede8; --text2: #b4b2a9; --text3: #888780;
+      --border: rgba(255,255,255,0.12); --border2: rgba(255,255,255,0.22);
+      --teal-50: #085041; --teal-100: #0F6E56; --teal-400: #1D9E75;
+      --green-50: #27500A; --green-400: #97C459; --green-800: #EAF3DE;
+      --red-50: #791F1F; --red-400: #F09595; --red-800: #FCEBEB;
+      --amber-50: #633806; --amber-400: #EF9F27; --amber-800: #FAEEDA;
+      --blue-50: #0C447C; --blue-400: #85B7EB; --blue-800: #E6F1FB;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--bg3); color: var(--text); font-size: 15px; line-height: 1.6; min-height: 100vh; }
+
+  #auth-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 1rem; }
+  .auth-box { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 2rem; width: 100%; max-width: 400px; }
+  .logo { font-size: 22px; font-weight: 500; color: var(--teal-400); margin-bottom: 0.25rem; }
+  .logo-sub { font-size: 13px; color: var(--text3); margin-bottom: 1.5rem; }
+  .auth-tabs { display: flex; gap: 4px; background: var(--bg2); border-radius: var(--radius); padding: 4px; margin-bottom: 1.5rem; }
+  .auth-tab { flex: 1; padding: 7px; border: none; background: transparent; border-radius: 6px; cursor: pointer; font-size: 13px; color: var(--text2); transition: all 0.15s; }
+  .auth-tab.active { background: var(--bg); color: var(--text); font-weight: 500; border: 0.5px solid var(--border); }
+  .field { margin-bottom: 1rem; }
+  .field label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+  .field input, .field select { width: 100%; padding: 9px 12px; border: 0.5px solid var(--border2); border-radius: var(--radius); background: var(--bg); color: var(--text); font-size: 14px; outline: none; transition: border-color 0.15s; }
+  .field input:focus, .field select:focus { border-color: var(--teal-400); box-shadow: 0 0 0 2px rgba(29,158,117,0.15); }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border: 0.5px solid var(--border2); border-radius: var(--radius); background: var(--bg); color: var(--text); font-size: 14px; cursor: pointer; transition: all 0.15s; }
+  .btn:hover { background: var(--bg2); }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary { background: var(--teal-400); border-color: var(--teal-400); color: #fff; font-weight: 500; }
+  .btn-primary:hover { background: var(--teal-600); border-color: var(--teal-600); }
+  .btn-full { width: 100%; justify-content: center; }
+  .btn-danger { border-color: var(--red-400); color: var(--red-400); }
+  .btn-danger:hover { background: var(--red-50); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .error-msg { font-size: 13px; color: var(--red-400); background: var(--red-50); border: 0.5px solid var(--red-400); border-radius: var(--radius); padding: 8px 12px; margin-top: 0.75rem; display: none; }
+  .success-msg { font-size: 13px; color: var(--green-400); background: var(--green-50); border: 0.5px solid var(--green-400); border-radius: var(--radius); padding: 8px 12px; margin-top: 0.75rem; display: none; }
+
+  #app-screen { display: none; min-height: 100vh; }
+  .topbar { background: var(--bg); border-bottom: 0.5px solid var(--border); padding: 0 1.5rem; height: 52px; display: flex; align-items: center; justify-content: space-between; }
+  .topbar-logo { font-size: 17px; font-weight: 500; color: var(--teal-400); }
+  .topbar-user { display: flex; align-items: center; gap: 10px; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--teal-50); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; color: var(--teal-800); }
+  .user-name { font-size: 13px; color: var(--text2); }
+  .layout { display: grid; grid-template-columns: 200px 1fr; min-height: calc(100vh - 52px); }
+  .sidebar { background: var(--bg); border-right: 0.5px solid var(--border); padding: 1rem 0; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 1.25rem; font-size: 14px; color: var(--text2); cursor: pointer; transition: all 0.1s; border-left: 2px solid transparent; }
+  .nav-item:hover { background: var(--bg2); color: var(--text); }
+  .nav-item.active { color: var(--teal-400); border-left-color: var(--teal-400); background: var(--teal-50); font-weight: 500; }
+  .nav-icon { width: 16px; height: 16px; flex-shrink: 0; }
+  .main { padding: 1.5rem; background: var(--bg3); }
+  .page { display: none; }
+  .page.active { display: block; }
+  .page-title { font-size: 20px; font-weight: 500; margin-bottom: 1.25rem; }
+
+  .card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1rem; }
+  .card-title { font-size: 14px; font-weight: 500; margin-bottom: 1rem; color: var(--text); }
+  .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 1.25rem; }
+  .metric { background: var(--bg2); border-radius: var(--radius); padding: 0.9rem 1rem; }
+  .metric-label { font-size: 11px; color: var(--text3); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .metric-value { font-size: 22px; font-weight: 500; color: var(--text); }
+  .metric-unit { font-size: 12px; color: var(--text2); }
+  .metric.teal .metric-value { color: var(--teal-400); }
+  .metric.red .metric-value { color: var(--red-400); }
+  .metric.amber .metric-value { color: var(--amber-400); }
+
+  .progress-wrap { margin-bottom: 1rem; }
+  .progress-header { display: flex; justify-content: space-between; font-size: 12px; color: var(--text2); margin-bottom: 5px; }
+  .progress-bar { height: 8px; background: var(--bg3); border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 4px; background: var(--teal-400); transition: width 0.3s; }
+  .progress-fill.over { background: var(--red-400); }
+  .progress-fill.warn { background: var(--amber-400); }
+
+  .log-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .log-table th { text-align: left; padding: 8px 10px; font-size: 11px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 0.5px solid var(--border); }
+  .log-table td { padding: 9px 10px; border-bottom: 0.5px solid var(--border); color: var(--text); vertical-align: middle; }
+  .log-table tr:last-child td { border-bottom: none; }
+  .log-table tr:hover td { background: var(--bg2); }
+  .meal-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+  .meal-B { background: var(--blue-50); color: var(--blue-800); }
+  .meal-L { background: var(--teal-50); color: var(--teal-800); }
+  .meal-D { background: var(--amber-50); color: var(--amber-800); }
+  .meal-S { background: var(--gray-50); color: var(--gray-600); }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .form-grid .span2 { grid-column: span 2; }
+
+  .tip-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; margin-bottom: 0.75rem; }
+  .tip-header { display: flex; align-items: center; gap: 8px; margin-bottom: 0.4rem; }
+  .tip-tag { font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 500; }
+  .tip-tag.protein { background: var(--teal-50); color: var(--teal-800); }
+  .tip-tag.hidration { background: var(--blue-50); color: var(--blue-800); }
+  .tip-tag.vitamins { background: var(--green-50); color: var(--green-800); }
+  .tip-tag.general { background: var(--amber-50); color: var(--amber-800); }
+  .tip-text { font-size: 14px; color: var(--text); line-height: 1.5; }
+
+  .chart-wrap { height: 160px; display: flex; align-items: flex-end; gap: 8px; padding-top: 1rem; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .bar { width: 100%; border-radius: 4px 4px 0 0; background: var(--teal-100); min-height: 4px; transition: height 0.3s; }
+  .bar.today { background: var(--teal-400); }
+  .bar.over { background: var(--red-400); }
+  .bar-label { font-size: 11px; color: var(--text3); }
+  .bar-val { font-size: 10px; color: var(--text3); }
+
+  .log-entry { display: flex; gap: 10px; padding: 6px 0; border-bottom: 0.5px solid var(--border); font-size: 12px; }
+  .log-entry:last-child { border-bottom: none; }
+  .log-time { color: var(--text3); min-width: 50px; }
+  .log-level { font-weight: 500; min-width: 45px; }
+  .log-level.INFO { color: var(--blue-400); }
+  .log-level.ERROR { color: var(--red-400); }
+  .log-level.WARN { color: var(--amber-400); }
+  .log-msg { color: var(--text2); flex: 1; }
+
+  .empty-state { text-align: center; padding: 2.5rem 1rem; color: var(--text3); font-size: 14px; }
+  .divider { height: 0.5px; background: var(--border); margin: 1rem 0; }
+  .flex-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .flex-between { display: flex; align-items: center; justify-content: space-between; }
+  .mt1 { margin-top: 1rem; }
+
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 640px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-grid .span2 { grid-column: span 1; }
+  }
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="logo">NutriTrack LV</div>
+    <div class="logo-sub">Kaloriju un uztura izsekotājs</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login')">Pieteikties</button>
+      <button class="auth-tab" onclick="switchAuthTab('register')">Reģistrēties</button>
+    </div>
+
+    <div id="login-form">
+      <div class="field"><label>E-pasts</label><input type="email" id="login-email" placeholder="jans@piemers.lv" /></div>
+      <div class="field"><label>Parole</label><input type="password" id="login-password" placeholder="••••••••" onkeydown="if(event.key==='Enter') doLogin()" /></div>
+      <button class="btn btn-primary btn-full" id="login-btn" onclick="doLogin()">Pieteikties</button>
+      <div class="error-msg" id="login-error"></div>
+    </div>
+
+    <div id="register-form" style="display:none;">
+      <div class="field"><label>Vārds</label><input type="text" id="reg-name" placeholder="Jānis Bērziņš" /></div>
+      <div class="field"><label>E-pasts</label><input type="email" id="reg-email" placeholder="jans@piemers.lv" /></div>
+      <div class="field"><label>Parole</label><input type="password" id="reg-password" placeholder="vismaz 6 rakstzīmes" /></div>
+      <div class="field"><label>Mērķa kalorijas / dienā</label><input type="number" id="reg-calories" placeholder="2000" value="2000" /></div>
+      <button class="btn btn-primary btn-full" id="reg-btn" onclick="doRegister()">Izveidot kontu</button>
+      <div class="error-msg" id="reg-error"></div>
+      <div class="success-msg" id="reg-success"></div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen">
+  <div class="topbar">
+    <div class="topbar-logo">NutriTrack LV</div>
+    <div class="topbar-user">
+      <div class="avatar" id="user-avatar">?</div>
+      <span class="user-name" id="user-display-name"></span>
+      <button class="btn btn-sm" onclick="doLogout()">Iziet</button>
+    </div>
+  </div>
+  <div class="layout">
+    <div class="sidebar">
+      <div class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.2"/></svg>
+        Pārskats
+      </div>
+      <div class="nav-item" onclick="showPage('log')" id="nav-log">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M3 4h10M3 8h7M3 12h5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Ēdienu žurnāls
+      </div>
+      <div class="nav-item" onclick="showPage('add')" id="nav-add">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.2"/><path d="M8 5v6M5 8h6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Pievienot ēdienu
+      </div>
+      <div class="nav-item" onclick="showPage('profile')" id="nav-profile">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.2"/><path d="M2 14c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Profils
+      </div>
+      <div class="nav-item" onclick="showPage('tips')" id="nav-tips">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.2"/><path d="M8 7v5M8 5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Padomi
+      </div>
+      <div class="nav-item" onclick="showPage('system-log')" id="nav-system-log">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 3h12M2 6h8M2 9h10M2 12h6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Sistēmas žurnāls
+      </div>
+    </div>
+    <div class="main">
+
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div class="page-title">Šodienas kopsavilkums</div>
+        <div class="metric-grid">
+          <div class="metric teal"><div class="metric-label">Patērēts</div><div><span class="metric-value" id="m-consumed">0</span> <span class="metric-unit">kcal</span></div></div>
+          <div class="metric"><div class="metric-label">Mērķis</div><div><span class="metric-value" id="m-goal">2000</span> <span class="metric-unit">kcal</span></div></div>
+          <div class="metric"><div class="metric-label">Atlikums</div><div><span class="metric-value" id="m-remain">2000</span> <span class="metric-unit">kcal</span></div></div>
+          <div class="metric"><div class="metric-label">Ēdienreizes</div><div><span class="metric-value" id="m-meals">0</span> <span class="metric-unit">reizes</span></div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Kaloriju progress šodien</div>
+          <div class="progress-wrap">
+            <div class="progress-header"><span id="prog-label">0 / 2000 kcal</span><span id="prog-pct">0%</span></div>
+            <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-header"><span>Olbaltumvielas</span><span id="prog-prot">0 g</span></div>
+            <div class="progress-bar"><div class="progress-fill" id="prog-fill-prot" style="width:0%; background:var(--blue-400)"></div></div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-header"><span>Tauki</span><span id="prog-fat">0 g</span></div>
+            <div class="progress-bar"><div class="progress-fill" id="prog-fill-fat" style="width:0%; background:var(--amber-400)"></div></div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-header"><span>Ogļhidrāti</span><span id="prog-carb">0 g</span></div>
+            <div class="progress-bar"><div class="progress-fill" id="prog-fill-carb" style="width:0%; background:var(--green-400)"></div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Nedēļas pārskats</div>
+          <div class="chart-wrap" id="weekly-chart"></div>
+        </div>
+        <div class="card">
+          <div class="card-title flex-between">Šodienas ēdieni <button class="btn btn-sm btn-primary" onclick="showPage('add')">+ Pievienot</button></div>
+          <div id="today-log-preview"></div>
+        </div>
+      </div>
+
+      <!-- FOOD LOG -->
+      <div class="page" id="page-log">
+        <div class="page-title flex-between">
+          Ēdienu žurnāls
+          <input type="date" id="log-date-filter" style="padding:6px 10px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-size:13px;" oninput="renderFoodLog()" />
+        </div>
+        <div class="card">
+          <table class="log-table">
+            <thead><tr><th>Ēdienreize</th><th>Ēdiens</th><th>Daudzums</th><th>Kalorijas</th><th>Olb.</th><th>Tauki</th><th>Ogļh.</th><th></th></tr></thead>
+            <tbody id="food-log-body"></tbody>
+          </table>
+          <div class="empty-state" id="log-empty" style="display:none;">Nav ierakstu šai dienai.</div>
+        </div>
+      </div>
+
+      <!-- ADD FOOD -->
+      <div class="page" id="page-add">
+        <div class="page-title">Pievienot ēdienu</div>
+        <div class="card">
+          <div class="card-title">Ātrā pievienošana</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;" id="quick-foods"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Ēdiena ieraksts</div>
+          <div id="add-form-error" class="error-msg"></div>
+          <div id="add-form-success" class="success-msg"></div>
+          <div class="form-grid">
+            <div class="field span2"><label>Ēdiens / produkts *</label><input type="text" id="f-name" placeholder="piem. Auzu putra ar ogām" /></div>
+            <div class="field"><label>Ēdienreize *</label><select id="f-meal"><option value="B">Brokastis</option><option value="L">Pusdienas</option><option value="D">Vakariņas</option><option value="S">Uzkoda</option></select></div>
+            <div class="field"><label>Datums</label><input type="date" id="f-date" /></div>
+            <div class="field"><label>Daudzums (g / ml) *</label><input type="number" id="f-amount" placeholder="200" min="1" /></div>
+            <div class="field"><label>Kalorijas (kcal) *</label><input type="number" id="f-calories" placeholder="320" min="0" /></div>
+            <div class="field"><label>Olbaltumvielas (g)</label><input type="number" id="f-protein" placeholder="12" min="0" /></div>
+            <div class="field"><label>Tauki (g)</label><input type="number" id="f-fat" placeholder="8" min="0" /></div>
+            <div class="field"><label>Ogļhidrāti (g)</label><input type="number" id="f-carbs" placeholder="45" min="0" /></div>
+            <div class="field span2"><label>Piezīmes</label><input type="text" id="f-notes" placeholder="Neobligāti..." /></div>
+          </div>
+          <div class="flex-row mt1">
+            <button class="btn btn-primary" id="add-btn" onclick="addFoodEntry()">Saglabāt</button>
+            <button class="btn" onclick="clearAddForm()">Notīrīt</button>
+          </div>
+        </div>
+        <div class="card" id="edit-card" style="display:none;border:2px solid var(--teal-400);">
+          <div class="card-title">Labot ierakstu</div>
+          <div id="edit-form-error" class="error-msg"></div>
+          <input type="hidden" id="e-id" />
+          <div class="form-grid">
+            <div class="field span2"><label>Ēdiens *</label><input type="text" id="e-name" /></div>
+            <div class="field"><label>Ēdienreize</label><select id="e-meal"><option value="B">Brokastis</option><option value="L">Pusdienas</option><option value="D">Vakariņas</option><option value="S">Uzkoda</option></select></div>
+            <div class="field"><label>Daudzums</label><input type="number" id="e-amount" min="1" /></div>
+            <div class="field"><label>Kalorijas</label><input type="number" id="e-calories" min="0" /></div>
+            <div class="field"><label>Olbaltumvielas</label><input type="number" id="e-protein" min="0" /></div>
+            <div class="field"><label>Tauki</label><input type="number" id="e-fat" min="0" /></div>
+            <div class="field"><label>Ogļhidrāti</label><input type="number" id="e-carbs" min="0" /></div>
+          </div>
+          <div class="flex-row mt1">
+            <button class="btn btn-primary" id="edit-btn" onclick="saveEdit()">Saglabāt izmaiņas</button>
+            <button class="btn" onclick="document.getElementById('edit-card').style.display='none'">Atcelt</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROFILE -->
+      <div class="page" id="page-profile">
+        <div class="page-title">Mans profils</div>
+        <div class="card">
+          <div class="flex-row" style="margin-bottom:1.25rem;">
+            <div class="avatar" id="profile-avatar" style="width:52px;height:52px;font-size:18px;">?</div>
+            <div><div style="font-weight:500;font-size:16px;" id="profile-name">-</div><div style="font-size:13px;color:var(--text3);" id="profile-email">-</div></div>
+          </div>
+          <div class="divider"></div>
+          <div class="form-grid">
+            <div class="field"><label>Vārds</label><input type="text" id="p-name" /></div>
+            <div class="field"><label>Mērķa kalorijas</label><input type="number" id="p-calories" min="800" max="5000" /></div>
+            <div class="field"><label>Vecums</label><input type="number" id="p-age" placeholder="25" /></div>
+            <div class="field"><label>Svars (kg)</label><input type="number" id="p-weight" placeholder="70" /></div>
+            <div class="field"><label>Augums (cm)</label><input type="number" id="p-height" placeholder="175" /></div>
+            <div class="field"><label>Aktivitātes līmenis</label>
+              <select id="p-activity">
+                <option value="1.2">Mazkustīgs</option>
+                <option value="1.375">Viegli aktīvs</option>
+                <option value="1.55" selected>Vidēji aktīvs</option>
+                <option value="1.725">Ļoti aktīvs</option>
+              </select>
+            </div>
+          </div>
+          <div id="bmr-result" style="margin:0.75rem 0;padding:0.75rem;background:var(--teal-50);border-radius:var(--radius);font-size:13px;color:var(--teal-800);display:none;"></div>
+          <div class="flex-row mt1">
+            <button class="btn btn-primary" id="profile-save-btn" onclick="saveProfile()">Saglabāt profilu</button>
+            <button class="btn" onclick="calcBMR()">Aprēķināt BMR</button>
+          </div>
+          <div class="error-msg" id="profile-error"></div>
+          <div class="success-msg" id="profile-success"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Konta statistika</div>
+          <div class="metric-grid">
+            <div class="metric"><div class="metric-label">Kopā ieraksti</div><div class="metric-value" id="stat-total">0</div></div>
+            <div class="metric"><div class="metric-label">Aktīvās dienas</div><div class="metric-value" id="stat-days">0</div></div>
+            <div class="metric teal"><div class="metric-label">Vidēji / dienā</div><div><span class="metric-value" id="stat-avg">0</span> <span class="metric-unit">kcal</span></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TIPS -->
+      <div class="page" id="page-tips">
+        <div class="page-title">Uztura padomi</div>
+        <div class="flex-row" style="margin-bottom:1rem;">
+          <button class="btn btn-sm" style="border-color:var(--teal-400);color:var(--teal-400);" onclick="filterTips('all',this)">Visi</button>
+          <button class="btn btn-sm" onclick="filterTips('protein',this)">Olbaltumvielas</button>
+          <button class="btn btn-sm" onclick="filterTips('hidration',this)">Hidratācija</button>
+          <button class="btn btn-sm" onclick="filterTips('vitamins',this)">Vitamīni</button>
+          <button class="btn btn-sm" onclick="filterTips('general',this)">Vispārīgi</button>
+        </div>
+        <div id="tips-container"></div>
+      </div>
+
+      <!-- SYSTEM LOG -->
+      <div class="page" id="page-system-log">
+        <div class="page-title">Sistēmas žurnāls</div>
+        <div class="card">
+          <div style="font-size:12px;color:var(--text3);margin-bottom:0.75rem;">Reāllaika notikumi no servera — INFO / ERROR / WARN</div>
+          <div id="system-log-container"></div>
+          <div class="empty-state" id="syslog-empty" style="display:none;">Žurnāls ir tukšs.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let currentUser = null;  // { name, email, calorieGoal, token }
+let allEntries = [];     // кэш записей пользователя
+
+// ============================================================
+// API — все запросы к backend
+// ============================================================
+const API = {
+  // Базовый запрос
+  async request(method, path, body = null) {
+    const token = localStorage.getItem('token');
+    const opts = {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+    };
+    if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+    if (body) opts.body = JSON.stringify(body);
+
+    try {
+      const res = await fetch('/api' + path, opts);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Servera kļūda');
+      return data;
+    } catch (e) {
+      // Если сервер недоступен — показываем понятную ошибку
+      if (e.message === 'Failed to fetch') throw new Error('Nevar savienoties ar serveri');
+      throw e;
+    }
+  },
+
+  // AUTH
+  register: (body)  => API.request('POST', '/auth/register', body),
+  login:    (body)  => API.request('POST', '/auth/login', body),
+
+  // ENTRIES CRUD
+  getEntries: (date) => API.request('GET', '/entries' + (date ? '?date=' + date : '')),
+  addEntry:   (body) => API.request('POST', '/entries', body),
+  updateEntry:(id, body) => API.request('PUT', '/entries/' + id, body),
+  deleteEntry:(id)   => API.request('DELETE', '/entries/' + id),
+
+  // PROFILE
+  getProfile:  ()    => API.request('GET', '/profile'),
+  saveProfile: (body)=> API.request('PUT', '/profile', body),
+
+  // LOGS
+  getLogs: () => API.request('GET', '/logs'),
+};
+
+// ============================================================
+// HELPERS
+// ============================================================
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function initials(name) {
+  return (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+}
+
+function setLoading(btnId, loading, text = null) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.disabled = loading;
+  if (loading) {
+    btn._orig = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner"></span>';
+  } else {
+    btn.innerHTML = text || btn._orig || btn.innerHTML;
+  }
+}
+
+function showErr(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function hideMsg(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'none';
+}
+
+function showSucc(id, msg, timeout = 3000) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.style.display = 'block';
+  if (timeout) setTimeout(() => el.style.display = 'none', timeout);
+}
+
+// ============================================================
+// AUTH
+// ============================================================
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t, i) =>
+    t.classList.toggle('active', (i === 0) === (tab === 'login')));
+  document.getElementById('login-form').style.display    = tab === 'login'    ? 'block' : 'none';
+  document.getElementById('register-form').style.display = tab === 'register' ? 'block' : 'none';
+}
+
+async function doRegister() {
+  hideMsg('reg-error'); hideMsg('reg-success');
+  const name     = document.getElementById('reg-name').value.trim();
+  const email    = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-password').value;
+  const calorieGoal = parseInt(document.getElementById('reg-calories').value) || 2000;
+
+  // Клиентская валидация
+  if (!name)               return showErr('reg-error', 'Lūdzu ievadiet vārdu.');
+  if (!email.includes('@')) return showErr('reg-error', 'Nepareizs e-pasta formāts.');
+  if (password.length < 6) return showErr('reg-error', 'Parolei jābūt vismaz 6 rakstzīmēm.');
+
+  setLoading('reg-btn', true);
+  try {
+    await API.register({ name, email, password, calorieGoal });
+    showSucc('reg-success', 'Konts izveidots! Varat pieteikties.');
+    setTimeout(() => switchAuthTab('login'), 1500);
+  } catch (e) {
+    showErr('reg-error', e.message);
+  } finally {
+    setLoading('reg-btn', false, 'Izveidot kontu');
+  }
+}
+
+async function doLogin() {
+  hideMsg('login-error');
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+
+  if (!email || !password) return showErr('login-error', 'Lūdzu aizpildiet visus laukus.');
+
+  setLoading('login-btn', true);
+  try {
+    const data = await API.login({ email, password });
+    localStorage.setItem('token', data.token);
+    currentUser = { ...data.user };
+    await launchApp();
+  } catch (e) {
+    showErr('login-error', e.message);
+  } finally {
+    setLoading('login-btn', false, 'Pieteikties');
+  }
+}
+
+async function doLogout() {
+  localStorage.removeItem('token');
+  currentUser = null;
+  allEntries = [];
+  document.getElementById('app-screen').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+}
+
+// ============================================================
+// APP INIT
+// ============================================================
+async function launchApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display  = 'block';
+
+  document.getElementById('user-avatar').textContent       = initials(currentUser.name);
+  document.getElementById('user-display-name').textContent = currentUser.name.split(' ')[0];
+  document.getElementById('profile-avatar').textContent    = initials(currentUser.name);
+  document.getElementById('f-date').value = todayStr();
+  document.getElementById('log-date-filter').value = todayStr();
+
+  // Загружаем все записи один раз в кэш
+  await refreshEntries();
+
+  renderDashboard();
+  renderFoodLog();
+  renderTips('all');
+  loadProfile();
+  renderQuickFoods();
+  renderSystemLog();
+}
+
+// Обновить кэш записей с сервера
+async function refreshEntries() {
+  try {
+    allEntries = await API.getEntries();
+  } catch (e) {
+    allEntries = [];
+    console.error('Nevar ielādēt ierakstus:', e.message);
+  }
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.getElementById('nav-' + id).classList.add('active');
+  if (id === 'dashboard')   renderDashboard();
+  if (id === 'log')         renderFoodLog();
+  if (id === 'profile')     { loadProfile(); renderStats(); }
+  if (id === 'system-log')  renderSystemLog();
+}
+
+// ============================================================
+// FOOD ENTRIES — CRUD
+// ============================================================
+async function addFoodEntry() {
+  hideMsg('add-form-error'); hideMsg('add-form-success');
+  const name     = document.getElementById('f-name').value.trim();
+  const meal     = document.getElementById('f-meal').value;
+  const date     = document.getElementById('f-date').value;
+  const amount   = parseFloat(document.getElementById('f-amount').value);
+  const calories = parseFloat(document.getElementById('f-calories').value);
+  const protein  = parseFloat(document.getElementById('f-protein').value)  || 0;
+  const fat      = parseFloat(document.getElementById('f-fat').value)      || 0;
+  const carbs    = parseFloat(document.getElementById('f-carbs').value)    || 0;
+  const notes    = document.getElementById('f-notes').value.trim();
+
+  // Валидация
+  if (!name)                     return showErr('add-form-error', 'Lūdzu ievadiet ēdiena nosaukumu.');
+  if (!date)                     return showErr('add-form-error', 'Lūdzu izvēlieties datumu.');
+  if (!amount || amount <= 0)    return showErr('add-form-error', 'Lūdzu ievadiet derīgu daudzumu (> 0).');
+  if (isNaN(calories) || calories < 0) return showErr('add-form-error', 'Lūdzu ievadiet derīgu kaloriju skaitu.');
+
+  setLoading('add-btn', true);
+  try {
+    const entry = await API.addEntry({ name, meal, date, amount, calories, protein, fat, carbs, notes });
+    // Добавляем в кэш без повторного запроса
+    allEntries.push({ id: entry.id, name, meal, date, amount, calories, protein, fat, carbs, notes });
+    showSucc('add-form-success', 'Ēdiens veiksmīgi pievienots!');
+    clearAddForm();
+    renderDashboard();
+  } catch (e) {
+    showErr('add-form-error', e.message);
+  } finally {
+    setLoading('add-btn', false, 'Saglabāt');
+  }
+}
+
+function clearAddForm() {
+  ['f-name','f-amount','f-calories','f-protein','f-fat','f-carbs','f-notes'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('f-date').value = todayStr();
+}
+
+async function deleteEntry(id) {
+  if (!confirm('Dzēst šo ierakstu?')) return;
+  try {
+    await API.deleteEntry(id);
+    allEntries = allEntries.filter(e => e.id !== id);
+    renderFoodLog();
+    renderDashboard();
+  } catch (e) {
+    alert('Kļūda dzēšot: ' + e.message);
+  }
+}
+
+function openEdit(id) {
+  const entry = allEntries.find(e => e.id === id);
+  if (!entry) return;
+  document.getElementById('e-id').value      = id;
+  document.getElementById('e-name').value    = entry.name;
+  document.getElementById('e-meal').value    = entry.meal;
+  document.getElementById('e-amount').value  = entry.amount;
+  document.getElementById('e-calories').value = entry.calories;
+  document.getElementById('e-protein').value = entry.protein;
+  document.getElementById('e-fat').value     = entry.fat;
+  document.getElementById('e-carbs').value   = entry.carbs;
+  document.getElementById('edit-card').style.display = 'block';
+  showPage('add');
+  document.getElementById('edit-card').scrollIntoView({ behavior: 'smooth' });
+}
+
+async function saveEdit() {
+  hideMsg('edit-form-error');
+  const id       = parseInt(document.getElementById('e-id').value);
+  const name     = document.getElementById('e-name').value.trim();
+  const meal     = document.getElementById('e-meal').value;
+  const amount   = parseFloat(document.getElementById('e-amount').value);
+  const calories = parseFloat(document.getElementById('e-calories').value);
+  const protein  = parseFloat(document.getElementById('e-protein').value)  || 0;
+  const fat      = parseFloat(document.getElementById('e-fat').value)      || 0;
+  const carbs    = parseFloat(document.getElementById('e-carbs').value)    || 0;
+
+  if (!name)                     return showErr('edit-form-error', 'Nosaukums nedrīkst būt tukšs.');
+  if (!amount || amount <= 0)    return showErr('edit-form-error', 'Nepareizs daudzums.');
+  if (isNaN(calories) || calories < 0) return showErr('edit-form-error', 'Nepareizas kalorijas.');
+
+  setLoading('edit-btn', true);
+  try {
+    await API.updateEntry(id, { name, meal, amount, calories, protein, fat, carbs });
+    // Обновляем кэш
+    const idx = allEntries.findIndex(e => e.id === id);
+    if (idx !== -1) allEntries[idx] = { ...allEntries[idx], name, meal, amount, calories, protein, fat, carbs };
+    document.getElementById('edit-card').style.display = 'none';
+    renderDashboard();
+    renderFoodLog();
+  } catch (e) {
+    showErr('edit-form-error', e.message);
+  } finally {
+    setLoading('edit-btn', false, 'Saglabāt izmaiņas');
+  }
+}
+
+// ============================================================
+// QUICK FOODS
+// ============================================================
+const QUICK_FOODS = [
+  { name: 'Auzu putra', meal: 'B', amount: 250, calories: 210, protein: 8, fat: 4, carbs: 38 },
+  { name: 'Ola vārīta', meal: 'B', amount: 55, calories: 78, protein: 6, fat: 5, carbs: 1 },
+  { name: 'Vistas krūtiņa', meal: 'L', amount: 150, calories: 165, protein: 31, fat: 4, carbs: 0 },
+  { name: 'Rīsi (vārīti)', meal: 'L', amount: 180, calories: 234, protein: 4, fat: 0, carbs: 52 },
+  { name: 'Salāti', meal: 'L', amount: 200, calories: 60, protein: 2, fat: 1, carbs: 12 },
+  { name: 'Maize rudzu', meal: 'S', amount: 50, calories: 110, protein: 4, fat: 1, carbs: 22 },
+  { name: 'Jogurts', meal: 'S', amount: 150, calories: 90, protein: 5, fat: 2, carbs: 13 },
+  { name: 'Banāns', meal: 'S', amount: 120, calories: 105, protein: 1, fat: 0, carbs: 27 },
+];
+
+function renderQuickFoods() {
+  document.getElementById('quick-foods').innerHTML = QUICK_FOODS.map(f =>
+    `<button class="btn btn-sm" onclick='quickAdd(${JSON.stringify(f).replace(/'/g,"&#39;")})'>${f.name}</button>`
+  ).join('');
+}
+
+function quickAdd(f) {
+  document.getElementById('f-name').value     = f.name;
+  document.getElementById('f-meal').value     = f.meal;
+  document.getElementById('f-amount').value   = f.amount;
+  document.getElementById('f-calories').value = f.calories;
+  document.getElementById('f-protein').value  = f.protein;
+  document.getElementById('f-fat').value      = f.fat;
+  document.getElementById('f-carbs').value    = f.carbs;
+  document.getElementById('f-date').value     = todayStr();
+  hideMsg('add-form-error');
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function renderDashboard() {
+  const today   = todayStr();
+  const entries = allEntries.filter(e => e.date === today);
+  const goal    = currentUser?.calorieGoal || 2000;
+
+  const consumed = Math.round(entries.reduce((s, e) => s + e.calories, 0));
+  const protein  = Math.round(entries.reduce((s, e) => s + (e.protein || 0), 0));
+  const fat      = Math.round(entries.reduce((s, e) => s + (e.fat    || 0), 0));
+  const carbs    = Math.round(entries.reduce((s, e) => s + (e.carbs  || 0), 0));
+  const remain   = goal - consumed;
+  const pct      = Math.min(Math.round((consumed / goal) * 100), 100);
+
+  document.getElementById('m-consumed').textContent = consumed;
+  document.getElementById('m-goal').textContent     = goal;
+  document.getElementById('m-remain').textContent   = remain < 0 ? '−' + Math.abs(remain) : remain;
+  document.getElementById('m-meals').textContent    = entries.length;
+  document.getElementById('prog-label').textContent = consumed + ' / ' + goal + ' kcal';
+  document.getElementById('prog-pct').textContent   = pct + '%';
+
+  const fill = document.getElementById('prog-fill');
+  fill.style.width = pct + '%';
+  fill.className = 'progress-fill' + (pct >= 100 ? ' over' : pct >= 80 ? ' warn' : '');
+
+  document.getElementById('prog-prot').textContent = protein + ' g';
+  document.getElementById('prog-fill-prot').style.width = Math.min(Math.round(protein / 1.5), 100) + '%';
+  document.getElementById('prog-fat').textContent  = fat + ' g';
+  document.getElementById('prog-fill-fat').style.width  = Math.min(Math.round(fat / 0.7), 100) + '%';
+  document.getElementById('prog-carb').textContent = carbs + ' g';
+  document.getElementById('prog-fill-carb').style.width = Math.min(Math.round(carbs / 2.5), 100) + '%';
+
+  renderWeeklyChart(goal);
+  renderTodayPreview(entries);
+}
+
+function renderWeeklyChart(goal) {
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const ds = d.toISOString().slice(0, 10);
+    const kcal = Math.round(allEntries.filter(e => e.date === ds).reduce((s, e) => s + e.calories, 0));
+    days.push({ label: ['Sv','Pr','Ot','Tr','Ce','Pk','Se'][d.getDay()], kcal, isToday: i === 0 });
+  }
+  const max = Math.max(...days.map(d => d.kcal), goal, 100);
+  document.getElementById('weekly-chart').innerHTML = days.map(d => {
+    const h = Math.max(Math.round((d.kcal / max) * 120), d.kcal > 0 ? 4 : 0);
+    const cls = d.isToday ? 'today' : d.kcal > goal ? 'over' : '';
+    return `<div class="bar-col">
+      <span class="bar-val">${d.kcal > 0 ? d.kcal : ''}</span>
+      <div class="bar ${cls}" style="height:${h}px"></div>
+      <span class="bar-label">${d.label}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderTodayPreview(entries) {
+  const el = document.getElementById('today-log-preview');
+  if (!entries.length) {
+    el.innerHTML = '<div class="empty-state">Nav ēdienu šodienai. <button class="btn btn-sm btn-primary" onclick="showPage(\'add\')">Pievienot pirmo</button></div>';
+    return;
+  }
+  const mealNames = { B: 'Brokastis', L: 'Pusdienas', D: 'Vakariņas', S: 'Uzkoda' };
+  el.innerHTML = '<table class="log-table"><thead><tr><th>Ēdienreize</th><th>Ēdiens</th><th>kcal</th></tr></thead><tbody>' +
+    entries.slice(-5).reverse().map(e =>
+      `<tr><td><span class="meal-badge meal-${e.meal}">${mealNames[e.meal]}</span></td><td>${e.name}</td><td>${Math.round(e.calories)}</td></tr>`
+    ).join('') + '</tbody></table>';
+}
+
+// ============================================================
+// FOOD LOG PAGE
+// ============================================================
+function renderFoodLog() {
+  const date    = document.getElementById('log-date-filter').value || todayStr();
+  const entries = allEntries.filter(e => e.date === date);
+  const body    = document.getElementById('food-log-body');
+  const empty   = document.getElementById('log-empty');
+  const mealNames = { B: 'Brokastis', L: 'Pusdienas', D: 'Vakariņas', S: 'Uzkoda' };
+
+  if (!entries.length) { body.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  body.innerHTML = entries.map(e => `<tr>
+    <td><span class="meal-badge meal-${e.meal}">${mealNames[e.meal]}</span></td>
+    <td>${e.name}</td>
+    <td>${e.amount} g</td>
+    <td><strong>${Math.round(e.calories)}</strong></td>
+    <td>${Math.round(e.protein || 0)}</td>
+    <td>${Math.round(e.fat || 0)}</td>
+    <td>${Math.round(e.carbs || 0)}</td>
+    <td><div style="display:flex;gap:4px;">
+      <button class="btn btn-sm" onclick="openEdit(${e.id})">Labot</button>
+      <button class="btn btn-sm btn-danger" onclick="deleteEntry(${e.id})">Dzēst</button>
+    </div></td>
+  </tr>`).join('');
+}
+
+// ============================================================
+// PROFILE
+// ============================================================
+async function loadProfile() {
+  if (!currentUser) return;
+  try {
+    const profile = await API.getProfile();
+    currentUser = { ...currentUser, ...profile };
+  } catch (e) { /* используем кэш */ }
+
+  document.getElementById('profile-name').textContent  = currentUser.name;
+  document.getElementById('profile-email').textContent = currentUser.email;
+  document.getElementById('p-name').value     = currentUser.name     || '';
+  document.getElementById('p-calories').value = currentUser.calorieGoal || 2000;
+  document.getElementById('p-age').value      = currentUser.age      || '';
+  document.getElementById('p-weight').value   = currentUser.weight   || '';
+  document.getElementById('p-height').value   = currentUser.height   || '';
+  if (currentUser.activity) document.getElementById('p-activity').value = currentUser.activity;
+}
+
+async function saveProfile() {
+  hideMsg('profile-error'); hideMsg('profile-success');
+  const name       = document.getElementById('p-name').value.trim();
+  const calorieGoal = parseInt(document.getElementById('p-calories').value);
+  const age        = parseInt(document.getElementById('p-age').value)    || null;
+  const weight     = parseFloat(document.getElementById('p-weight').value) || null;
+  const height     = parseFloat(document.getElementById('p-height').value) || null;
+  const activity   = document.getElementById('p-activity').value;
+
+  if (!name)                         return showErr('profile-error', 'Vārds nevar būt tukšs.');
+  if (!calorieGoal || calorieGoal < 800 || calorieGoal > 5000)
+    return showErr('profile-error', 'Kaloriju mērķim jābūt 800–5000.');
+
+  setLoading('profile-save-btn', true);
+  try {
+    await API.saveProfile({ name, calorieGoal, age, weight, height, activity });
+    currentUser = { ...currentUser, name, calorieGoal, age, weight, height, activity };
+    document.getElementById('user-avatar').textContent    = initials(name);
+    document.getElementById('profile-avatar').textContent = initials(name);
+    document.getElementById('user-display-name').textContent = name.split(' ')[0];
+    document.getElementById('profile-name').textContent   = name;
+    document.getElementById('m-goal').textContent         = calorieGoal;
+    showSucc('profile-success', 'Profils saglabāts!');
+  } catch (e) {
+    showErr('profile-error', e.message);
+  } finally {
+    setLoading('profile-save-btn', false, 'Saglabāt profilu');
+  }
+}
+
+function calcBMR() {
+  const w = parseFloat(document.getElementById('p-weight').value);
+  const h = parseFloat(document.getElementById('p-height').value);
+  const a = parseInt(document.getElementById('p-age').value);
+  const act = parseFloat(document.getElementById('p-activity').value);
+  const el = document.getElementById('bmr-result');
+  if (!w || !h || !a) { el.textContent = 'Lūdzu aizpildiet svaru, augumu un vecumu.'; el.style.display = 'block'; return; }
+  const bmr  = Math.round(10 * w + 6.25 * h - 5 * a - 161);
+  const tdee = Math.round(bmr * act);
+  el.textContent = 'Aprēķinātais BMR: ' + bmr + ' kcal  |  Ieteicamais dienā (TDEE): ' + tdee + ' kcal';
+  el.style.display = 'block';
+  document.getElementById('p-calories').value = tdee;
+}
+
+function renderStats() {
+  const days  = [...new Set(allEntries.map(e => e.date))];
+  const total = allEntries.reduce((s, e) => s + e.calories, 0);
+  const avg   = days.length ? Math.round(total / days.length) : 0;
+  document.getElementById('stat-total').textContent = allEntries.length;
+  document.getElementById('stat-days').textContent  = days.length;
+  document.getElementById('stat-avg').textContent   = avg;
+}
+
+// ============================================================
+// TIPS
+// ============================================================
+const TIPS = [
+  { cat: 'protein',   title: 'Olbaltumvielas ik pa 3–4 stundām', text: 'Lai uzturētu muskuļu masu, centies uzņemt 20–30 g olbaltumvielu katrā ēdienreizē. Labākie avoti: vistas gaļa, olas, biezpiens, pākšaugi.' },
+  { cat: 'hidration', title: '8 glāzes ūdens dienā',              text: 'Ūdens piedalās vielmaiņā, barības vielu transportā un toksīnu izvadē. Centies dzert 30–35 ml uz kg ķermeņa svara.' },
+  { cat: 'vitamins',  title: 'Varavīksnes ēšana',                 text: 'Jo vairāk krāsu dārzeņiem tavā šķīvī, jo plašāks vitamīnu un antioksidantu klāsts. Mēģini ēst vismaz 3 dažādas krāsas dienā.' },
+  { cat: 'general',   title: 'Neizlaist brokastis',               text: 'Brokastis palīdz stabilizēt cukura līmeni asinīs un dod enerģiju rītam. Ideāls variants: olbaltumvielas + šķiedras + labi tauki.' },
+  { cat: 'protein',   title: 'Biezpiens pirms gulētiešanas',      text: 'Kazeīna olbaltumvielas biezpienā uzsūcas lēni un baro muskuļus miega laikā. 150 g biezpiena satur ~18 g olbaltumvielu.' },
+  { cat: 'hidration', title: 'Ūdens pirms ēšanas',                text: 'Izdzer glāzi ūdens 20 minūtes pirms ēdienreizes — tas palīdz uzlabot gremošanu un samazina pārēšanās risku.' },
+  { cat: 'vitamins',  title: 'D vitamīns ziemā',                  text: 'Latvijā oktobris–aprīlis ir periods, kad saule nenodrošina pietiekamu D vitamīna sintēzi. Konsultē ārstu par papildus uzņemšanu.' },
+  { cat: 'general',   title: '80/20 princips',                    text: 'Ja 80% ēšanas reižu ēd veselīgi, 20% vari atļauties iecienītos ēdienus bez vainas. Stingri ierobežojumi ilgtermiņā neder.' },
+  { cat: 'general',   title: 'Lēna ēšana',                        text: 'Smadzenes saņem sāta signālu ~20 minūtes pēc ēšanas sākuma. Ēd lēnāk un pārtrauc ēst pirms jutīties pilnīgi paēdis.' },
+  { cat: 'hidration', title: 'Zaļā tēja',                         text: 'Zaļā tēja satur antioksidantus un nelielu daudzumu kofeīna. 2–3 tases dienā var atbalstīt vielmaiņu.' },
+];
+
+function renderTips(cat) {
+  const list = cat === 'all' ? TIPS : TIPS.filter(t => t.cat === cat);
+  const labelMap = { protein: 'Olbaltumvielas', hidration: 'Hidratācija', vitamins: 'Vitamīni', general: 'Vispārīgi' };
+  document.getElementById('tips-container').innerHTML = list.map(t => `
+    <div class="tip-card">
+      <div class="tip-header">
+        <span class="tip-tag ${t.cat}">${labelMap[t.cat]}</span>
+        <strong style="font-size:14px;">${t.title}</strong>
+      </div>
+      <div class="tip-text">${t.text}</div>
+    </div>`).join('');
+}
+
+function filterTips(cat, btn) {
+  document.querySelectorAll('#page-tips .btn').forEach(b => b.style.borderColor = '');
+  document.querySelectorAll('#page-tips .btn').forEach(b => b.style.color = '');
+  btn.style.borderColor = 'var(--teal-400)';
+  btn.style.color = 'var(--teal-400)';
+  renderTips(cat);
+}
+
+// ============================================================
+// SYSTEM LOG
+// ============================================================
+async function renderSystemLog() {
+  try {
+    const logs = await API.getLogs();
+    const el    = document.getElementById('system-log-container');
+    const empty = document.getElementById('syslog-empty');
+    if (!logs.length) { el.innerHTML = ''; empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+    el.innerHTML = logs.map(l => {
+      const t = new Date(l.created_at);
+      const time = isNaN(t) ? l.created_at : t.toLocaleTimeString('lv-LV');
+      return `<div class="log-entry">
+        <span class="log-time">${time}</span>
+        <span class="log-level ${l.level}">${l.level}</span>
+        <span class="log-msg">${l.message}</span>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    document.getElementById('system-log-container').innerHTML =
+      '<div style="font-size:13px;color:var(--text3);padding:1rem 0;">Nevar ielādēt žurnālu.</div>';
+  }
+}
+
+// ============================================================
+// BOOT — проверяем, есть ли сохранённый токен
+// ============================================================
+(async function init() {
+  const token = localStorage.getItem('token');
+  if (!token) return;
+
+  // Проверяем токен через /api/profile
+  try {
+    const profile = await fetch('/api/profile', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    }).then(r => { if (!r.ok) throw new Error(); return r.json(); });
+
+    currentUser = profile;
+    await launchApp();
+  } catch {
+    localStorage.removeItem('token');
+  }
+})();
+</script>
+</body>
+</html>
